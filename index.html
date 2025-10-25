@@ -24,7 +24,8 @@
     .row{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
     .row3{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
     .bar{height:14px;border-radius:999px;background:#f3f4f6;overflow:hidden;border:1px solid #e5e7eb}
-    .bar>i{display:block;height:100%;background:linear-gradient(90deg,#fde047,#facc15);width:0}
+    .bar>i{display:block;height:100%;background:linear-gradient(90deg,#fde047,#facc15);width:0;transition:width .25s ease}
+    .bar>i.over{background:linear-gradient(90deg,#ef4444,#dc2626)}
     .kpi{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:8px}
     .pill{background:#fffaf0;border:1px solid #fef3c7;border-radius:12px;padding:10px;text-align:center}
     .pill b{display:block;font-size:18px}
@@ -36,6 +37,9 @@
     .danger{background:#fee2e2;border-color:#fecaca;color:#991b1b}
     .success{background:#dcfce7;border-color:#bbf7d0;color:#065f46}
     .note{font-size:12px;color:var(--muted)}
+    .alert{margin-top:8px;padding:10px 12px;border-radius:10px;background:#fee2e2;border:1px solid #fecaca;color:#7f1d1d;font-size:13px;display:none}
+    .alert.show{display:block}
+    .note.bad{color:#7f1d1d}
     table{width:100%;border-collapse:collapse;margin-top:8px}
     th,td{font-size:13px;padding:8px;border-bottom:1px solid #e5e7eb}
     th{color:#374151;text-align:left}
@@ -54,7 +58,7 @@
     .inline{display:inline-flex;gap:8px;align-items:center}
     .narrow{max-width:700px}
     .hidden{display:none}
-  .tabs{display:flex;gap:8px;margin:8px 0}
+    .tabs{display:flex;gap:8px;margin:8px 0}
     .tabBtn{padding:8px 12px;border-radius:10px;border:1px solid #e5e7eb;background:#fff;cursor:pointer}
     .tabBtn.active{background:#fff7cc;border-color:#fde68a}
   </style>
@@ -124,6 +128,7 @@
       <div style="margin-top:12px">
         <div class="bar"><i id="progress"></i></div>
         <p id="statusMsg" class="note" style="margin:8px 0 0">Enter drinks to see progress.</p>
+        <div id="limitAlert" class="alert" role="alert" aria-live="polite"></div>
       </div>
     </section>
 
@@ -221,7 +226,7 @@
     </section>
   </main>
   <footer>
-    <div>Made with ♡ for Girls Hoo Hacks 2025 — CaffiNote prototype.</div>
+    <div>Made with ♡ for Girls Hoo Hack 2025 — CaffiNote prototype.</div>
   </footer>
 
 <script>
@@ -276,11 +281,9 @@ function initDate(){
 }
 function initMonthYear(){
   const now = new Date();
-  // months
   const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
   monthSel.innerHTML = MONTHS.map((m,i)=>`<option value="${i}">${m}</option>`).join('');
   monthSel.value = now.getMonth();
-  // years (current ± 2)
   const y = now.getFullYear();
   const years = [y-2,y-1,y,y+1,y+2];
   yearSel.innerHTML = years.map(v=>`<option>${v}</option>`).join('');
@@ -335,7 +338,6 @@ function dailyLimit(){
   if(rule==='fixed100') return 100;
   if(rule==='perkg3') return p.weight? Math.round(p.weight*3): 0;
   if(rule==='custom') return p.customLimit||0;
-  // auto
   const a = p.age||0;
   if(a>=18) return 400; // prototype adult rule
   if(a>=12) return 100; // teen rule
@@ -405,11 +407,34 @@ function refreshKpis(){
   todayRemain.textContent = lim? (Math.max(0, lim-sum)+" mg"): '—';
   const pct = lim? Math.min(100, Math.round((sum/lim)*100)) : 0;
   progress.style.width = pct+'%';
-  if(!lim){ statusMsg.textContent = 'Set your profile / limit rule to enable guidance.'; }
-  else if(sum===0){ statusMsg.textContent = 'You are at 0 mg for today.'; }
-  else if(sum<=0.5*lim){ statusMsg.textContent = 'You are under 50% of today\'s limit. 👍'; }
-  else if(sum<=lim){ statusMsg.textContent = 'Approaching your daily limit.'; }
-  else { statusMsg.textContent = 'Over today\'s limit (prototype rule). Consider slowing down.'; }
+  const alertBox = document.getElementById('limitAlert');
+  statusMsg.classList.remove('bad');
+  progress.classList.remove('over');
+
+  if(!lim){
+    statusMsg.textContent = 'Set your profile / limit rule to enable guidance.';
+    alertBox.classList.remove('show');
+    alertBox.textContent='';
+  } else if(sum===0){
+    statusMsg.textContent = 'You are at 0 mg for today.';
+    alertBox.classList.remove('show');
+    alertBox.textContent='';
+  } else if(sum<=0.5*lim){
+    statusMsg.textContent = 'Under 50% of today\'s limit. 👍';
+    alertBox.classList.remove('show');
+    alertBox.textContent='';
+  } else if(sum<=lim){
+    statusMsg.textContent = 'Approaching your daily limit.';
+    alertBox.classList.remove('show');
+    alertBox.textContent='';
+  } else {
+    statusMsg.textContent = 'Over today\'s limit (prototype rule). Consider slowing down.';
+    statusMsg.classList.add('bad');
+    progress.classList.add('over');
+    alertBox.classList.add('show');
+    const overBy = sum - lim;
+    alertBox.textContent = `Warning: You've exceeded today\'s limit by ${overBy} mg (total ${sum} mg / limit ${lim} mg).`;
+  }
 }
 
 // ---------- Heatmap & Month Stats ----------
@@ -497,27 +522,22 @@ function refresh(){ renderLog(); refreshKpis(); renderHeat(); renderMonthStats()
 function runSelfTests(){
   console.group('CaffiNote Self‑Tests');
   let pass=0, fail=0; const eq=(name, a, b)=>{ if(a===b){console.log('✓', name); pass++;} else {console.error('✗', name, 'expected', b, 'got', a); fail++;} };
-  // backup
   const backupProfile = JSON.parse(JSON.stringify(state.profile||{}));
   const backupEntries = (state.entries||[]).slice();
   const backupMonth = monthSel.value; const backupYear = yearSel.value;
   try{
-    // test: drink select populated
     initDrinkSelect();
     eq('Drink options populated', document.getElementById('drink').options.length, DRINKS.length);
 
-    // test: calcMg for known volumes
     eq('Brewed Coffee 237 mL = 95 mg', calcMg('Brewed Coffee', 237, null), 95);
     eq('Espresso 30 mL = 64 mg', calcMg('Espresso Shot', 30, null), 64);
     eq('Nitro 355 mL = 215 mg', calcMg('Nitro Cold Brew (12 oz)', 355, null), 215);
 
-    // test: dailyLimit rules
     state.profile = {age:18, limitRule:'auto'}; eq('dailyLimit age 18 auto=400', dailyLimit(), 400);
     state.profile = {age:17, limitRule:'auto'}; eq('dailyLimit age 17 auto=100', dailyLimit(), 100);
     state.profile = {weight:50, limitRule:'perkg3'}; eq('dailyLimit perkg3 50kg=150', dailyLimit(), 150);
     state.profile = {customLimit:250, limitRule:'custom'}; eq('dailyLimit custom=250', dailyLimit(), 250);
 
-    // test: month stats
     const y=2025, m=9; // Oct 2025
     yearSel.value=String(y); monthSel.value=String(m);
     state.entries = [
@@ -526,12 +546,17 @@ function runSelfTests(){
     ];
     renderMonthStats();
     eq('Month total mg=300', document.getElementById('sumMonth').textContent, '300 mg');
-    // Oct 2025 has 31 days → avgAll=10
-    eq('Avg all days=10 mg', document.getElementById('avgMonthAll').textContent, '10 mg');
-    // 2 logged days → 150
+    eq('Avg all days=10 mg', document.getElementById('avgMonthAll').textContent, '10 mg'); // 31 days in Oct → 300/31 ≈ 9.7 → 10
     eq('Avg logged days=150 mg', document.getElementById('avgMonthLogged').textContent, '150 mg');
+
+    // Over-limit visual test
+    const today = todayIso();
+    state.profile = {age:18, limitRule:'auto'}; // 400 mg
+    state.entries.push({id:'t3', date:today, name:'Brewed Coffee', vol:355, unit:'ml', ml:355, mg:350});
+    state.entries.push({id:'t4', date:today, name:'Espresso Shot', vol:30, unit:'ml', ml:30, mg:64}); // total 414
+    refreshKpis();
+    eq('Progress has over class when > limit', progress.classList.contains('over'), true);
   } finally {
-    // restore
     state.profile = backupProfile; state.entries = backupEntries;
     if(backupMonth!=null) monthSel.value = backupMonth; if(backupYear!=null) yearSel.value = backupYear;
     console.info(`Self‑tests complete: ${pass} passed, ${fail} failed`);
@@ -542,7 +567,6 @@ function runSelfTests(){
 // ---------- Boot ----------
 (function boot(){
   initDrinkSelect(); initDate(); initMonthYear(); applyProfile(); onDrinkChange(); initTabs();
-  // apply age rule on start if age is present
   if(age.value){ onAgeInput(); } else { refresh(); }
   if(location.search.includes('test=1')){ try{ runSelfTests(); }catch(e){ console.error('Self‑tests error', e); } }
 })();
