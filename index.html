@@ -1,0 +1,439 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>CaffiNote ☕ — Daily Caffeine Tracker</title>
+  <style>
+    :root{
+      --bg:#fffdf6;--card:#ffffff;--muted:#6b7280;--text:#1f2937;--acc:#f5c542;--ok:#16a34a;--warn:#eab308;--bad:#ef4444;--ring:#fde68a
+    }
+    *{box-sizing:border-box}
+    body{margin:0;font:16px/1.4 system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,"Helvetica Neue",Arial;color:var(--text);background:linear-gradient(180deg,#fffdf6,#fff7d6)}
+    header{padding:24px 18px;display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+    h1{font-size:22px;margin:0;display:flex;gap:10px;align-items:center}
+    h1 span.logo{display:inline-grid;place-items:center;width:34px;height:34px;border-radius:12px;background:#fde047;color:#4b5563;box-shadow:inset 0 0 0 1px #facc15}
+    h1 small{font-size:12px;color:var(--muted);font-weight:500}
+    main{max-width:1100px;margin:0 auto;padding:0 18px 80px;display:grid;grid-template-columns:1.1fr 1fr;gap:18px}
+    @media (max-width:980px){main{grid-template-columns:1fr}}
+    .card{background:var(--card);border:1px solid #e5e7eb;border-radius:18px;padding:16px;box-shadow:0 6px 16px rgba(0,0,0,.06)}
+    .card h2{margin:2px 0 12px;font-size:16px;color:#111827;letter-spacing:.2px}
+    label{display:block;font-size:13px;color:var(--muted);margin:8px 0 6px}
+    input,select,button,textarea{width:100%;border-radius:12px;border:1px solid #e5e7eb;background:#ffffff;color:var(--text);padding:12px 12px;outline:0}
+    input:focus,select:focus,textarea:focus{box-shadow:0 0 0 3px var(--ring)}
+    .row{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+    .row3{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+    .bar{height:14px;border-radius:999px;background:#f3f4f6;overflow:hidden;border:1px solid #e5e7eb}
+    .bar>i{display:block;height:100%;background:linear-gradient(90deg,#fde047,#facc15);width:0}
+    .kpi{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:8px}
+    .pill{background:#fffaf0;border:1px solid #fef3c7;border-radius:12px;padding:10px;text-align:center}
+    .pill b{display:block;font-size:18px}
+    .pill small{color:var(--muted)}
+    .flex{display:flex;gap:10px;align-items:center}
+    .right{margin-left:auto}
+    .btn{cursor:pointer;background:#fde047;border:1px solid #facc15;color:#1f2937}
+    .btn:hover{filter:brightness(0.98)}
+    .danger{background:#fee2e2;border-color:#fecaca;color:#991b1b}
+    .success{background:#dcfce7;border-color:#bbf7d0;color:#065f46}
+    .note{font-size:12px;color:var(--muted)}
+    table{width:100%;border-collapse:collapse;margin-top:8px}
+    th,td{font-size:13px;padding:8px;border-bottom:1px solid #e5e7eb}
+    th{color:#374151;text-align:left}
+    .heat{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
+    .dot{aspect-ratio:1/1;border-radius:10px;display:grid;place-items:center;font-size:11px;border:1px solid #e5e7eb}
+    .dot.empty{background:#f3f4f6;color:#9ca3af}
+    .dot.low{background:#fef9c3}
+    .dot.med{background:#fde68a}
+    .dot.high{background:#fbbf24}
+    .legend{display:flex;gap:8px;align-items:center;font-size:12px;color:var(--muted)}
+    .chip{width:14px;height:14px;border-radius:6px;border:1px solid #e5e7eb}
+    .chip.low{background:#fef9c3}
+    .chip.med{background:#fde68a}
+    .chip.high{background:#fbbf24}
+    footer{max-width:1100px;margin:20px auto 60px;color:var(--muted);padding:0 18px;font-size:12px}
+    .inline{display:inline-flex;gap:8px;align-items:center}
+    .narrow{max-width:700px}
+    .hidden{display:none}
+  </style>
+</head>
+<body>
+  <header>
+    <h1><span class="logo">☕</span> CaffiNote <small>prototype — not medical advice</small></h1>
+    <div class="inline">
+      <button class="btn" id="exportBtn">Export Data</button>
+      <label for="importFile" class="btn" style="padding:10px 12px;cursor:pointer">Import</label>
+      <input id="importFile" type="file" accept="application/json" class="hidden"/>
+      <button class="btn danger" id="resetBtn" title="Clear all local data">Reset</button>
+    </div>
+  </header>
+  <main>
+    <!-- LEFT COLUMN -->
+    <section class="card">
+      <h2>Profile & Daily Limit</h2>
+      <div class="row">
+        <div>
+          <label>Age</label>
+          <input id="age" type="number" min="0" placeholder="18" />
+        </div>
+        <div>
+          <label>Gender (optional)</label>
+          <select id="gender">
+            <option value="">Prefer not to say</option>
+            <option>Female</option>
+            <option>Male</option>
+            <option>Non-binary</option>
+            <option>Other</option>
+          </select>
+        </div>
+      </div>
+      <div class="row">
+        <div>
+          <label>Weight (kg, optional)</label>
+          <input id="weight" type="number" min="0" step="0.1" placeholder="60" />
+        </div>
+        <div>
+          <label>Height (cm, optional)</label>
+          <input id="height" type="number" min="0" step="0.1" placeholder="165" />
+        </div>
+      </div>
+      <div class="row">
+        <div>
+          <label>Daily limit rule</label>
+          <select id="limitRule">
+            <option value="auto">Auto (simple heuristic)</option>
+            <option value="fixed400">Fixed 400 mg (adult prototype)</option>
+            <option value="fixed100">Fixed 100 mg (teen prototype)</option>
+            <option value="perkg3">3 mg/kg</option>
+            <option value="custom">Custom…</option>
+          </select>
+        </div>
+        <div>
+          <label>Custom limit (mg)</label>
+          <input id="customLimit" type="number" min="0" step="1" placeholder="e.g., 250" />
+        </div>
+      </div>
+      <p class="note">Heuristic for <b>Auto</b>: if age ≥ 18 → 400 mg/day; 12–17 → 100 mg/day; &lt; 12 → 0 mg/day. You can override with "Custom".</p>
+      <div class="kpi">
+        <div class="pill"><small>Today Total</small><b id="todayTotal">0 mg</b></div>
+        <div class="pill"><small>Daily Limit</small><b id="todayLimit">—</b></div>
+        <div class="pill"><small>Remaining</small><b id="todayRemain">—</b></div>
+      </div>
+      <div style="margin-top:12px">
+        <div class="bar"><i id="progress"></i></div>
+        <p id="statusMsg" class="note" style="margin:8px 0 0">Enter drinks to see progress.</p>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Add a Drink</h2>
+      <div class="row">
+        <div>
+          <label>Drink</label>
+          <select id="drink">
+          </select>
+        </div>
+        <div>
+          <label>Volume</label>
+          <input id="volume" type="number" min="0" step="1" placeholder="355" />
+        </div>
+      </div>
+      <div class="row">
+        <div>
+          <label>Unit</label>
+          <select id="unit">
+            <option value="ml">mL</option>
+            <option value="oz">fl oz</option>
+          </select>
+        </div>
+        <div>
+          <label>Caffeine/serving (override, mg)</label>
+          <input id="overrideMg" type="number" min="0" step="1" placeholder="optional" />
+        </div>
+      </div>
+      <div class="row">
+        <div>
+          <label>Date</label>
+          <input id="date" type="date" />
+        </div>
+        <div style="display:flex;align-items:flex-end">
+          <button class="btn success" id="addBtn">Add drink</button>
+        </div>
+      </div>
+
+      <table id="logTable">
+        <thead>
+          <tr><th>Date</th><th>Drink</th><th>Vol</th><th>mg</th><th></th></tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </section>
+
+    <!-- FULL WIDTH CARDS -->
+    <section class="card" style="grid-column:1/-1">
+      <h2>Month View</h2>
+      <div class="flex" style="margin-bottom:10px">
+        <div class="row3" style="width:420px;max-width:100%">
+          <div>
+            <label>Month</label>
+            <select id="monthSel"></select>
+          </div>
+          <div>
+            <label>Year</label>
+            <select id="yearSel"></select>
+          </div>
+          <div>
+            <label>Color by</label>
+            <select id="colorMode">
+              <option value="pct">% of daily limit</option>
+              <option value="mg">Absolute mg</option>
+            </select>
+          </div>
+        </div>
+        <div class="right legend">
+          <span class="inline"><span class="chip low"></span> low</span>
+          <span class="inline"><span class="chip med"></span> medium</span>
+          <span class="inline"><span class="chip high"></span> high</span>
+          <span class="inline"><span class="chip" style="background:#0f1529"></span> no data</span>
+        </div>
+      </div>
+      <div id="heat" class="heat"></div>
+    </section>
+
+    <section class="card narrow" style="grid-column:1/-1">
+      <h2>About this prototype</h2>
+      <p class="note">This hackathon demo stores everything in <b>your browser only</b> (localStorage). No accounts, no servers. Thresholds are simple placeholders; this is not medical advice. Submit feedback and iterate!</p>
+    </section>
+  </main>
+  <footer>
+    <div>Made with ♡ for Girls Who (K)now Hackathons — CaffiNote prototype.</div>
+  </footer>
+
+<script>
+// ---------- Simple drink database (prototype values) ----------
+const DRINKS = [
+  {name:"Water", mgPerMl:0, defaultMl:355},
+  {name:"Brewed Coffee", mgPerMl:95/237, defaultMl:355}, // 95 mg per 8 fl oz
+  {name:"Espresso Shot", mgPerMl:64/30, defaultMl:30},
+  {name:"Black Tea", mgPerMl:47/237, defaultMl:355},
+  {name:"Green Tea", mgPerMl:28/237, defaultMl:355},
+  {name:"Coke (12 oz can)", mgPerMl:34/355, defaultMl:355},
+  {name:"Diet Coke (12 oz can)", mgPerMl:46/355, defaultMl:355},
+  {name:"Red Bull (8.4 oz)", mgPerMl:80/248, defaultMl:248},
+  {name:"Monster (16 oz)", mgPerMl:160/473, defaultMl:473},
+  {name:"CELSIUS (12 oz)", mgPerMl:200/355, defaultMl:355},
+  {name:"Dark Chocolate (per oz eaten)", mgPerMl:20/29.57, defaultMl:30},
+  {name:"Custom…", mgPerMl:null, defaultMl:355}
+];
+
+// ---------- Storage helpers ----------
+const KEY = 'caffinote-v1';
+function load(){
+  try{ return JSON.parse(localStorage.getItem(KEY)) || {profile:{}, entries:[]}; }catch{ return {profile:{}, entries:[]}; }
+}
+function save(state){ localStorage.setItem(KEY, JSON.stringify(state)); }
+let state = load();
+
+// ---------- DOM ----------
+const el = id => document.getElementById(id);
+const age = el('age'); const gender = el('gender'); const weight = el('weight'); const height = el('height');
+const limitRule = el('limitRule'); const customLimit = el('customLimit');
+const drink = el('drink'); const volume = el('volume'); const unit = el('unit'); const overrideMg = el('overrideMg');
+const addBtn = el('addBtn'); const dateInput = el('date');
+const todayTotal = el('todayTotal'); const todayLimit = el('todayLimit'); const todayRemain = el('todayRemain');
+const progress = el('progress'); const statusMsg = el('statusMsg');
+const logTable = el('logTable').querySelector('tbody');
+const monthSel = el('monthSel'); const yearSel = el('yearSel'); const heat = el('heat'); const colorMode = el('colorMode');
+
+// ---------- Init selects ----------
+function initDrinkSelect(){
+  drink.innerHTML = DRINKS.map(d=>`<option value="${d.name}">${d.name}</option>`).join('');
+}
+function initDate(){
+  const today = new Date();
+  const yyyy = today.getFullYear();
+  const mm = String(today.getMonth()+1).padStart(2,'0');
+  const dd = String(today.getDate()).padStart(2,'0');
+  dateInput.value = `${yyyy}-${mm}-${dd}`;
+}
+function initMonthYear(){
+  const now = new Date();
+  // months
+  const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+  monthSel.innerHTML = MONTHS.map((m,i)=>`<option value="${i}">${m}</option>`).join('');
+  monthSel.value = now.getMonth();
+  // years (current ± 2)
+  const y = now.getFullYear();
+  const years = [y-2,y-1,y,y+1,y+2];
+  yearSel.innerHTML = years.map(v=>`<option>${v}</option>`).join('');
+  yearSel.value = y;
+}
+
+// ---------- Profile load/save ----------
+function applyProfile(){
+  const p = state.profile || {};
+  if(p.age!=null) age.value = p.age;
+  if(p.gender!=null) gender.value = p.gender;
+  if(p.weight!=null) weight.value = p.weight;
+  if(p.height!=null) height.value = p.height;
+  if(p.limitRule) limitRule.value = p.limitRule; else limitRule.value = 'auto';
+  if(p.customLimit!=null) customLimit.value = p.customLimit;
+}
+function readProfile(){
+  state.profile = {
+    age: age.value? Number(age.value): null,
+    gender: gender.value||'',
+    weight: weight.value? Number(weight.value): null,
+    height: height.value? Number(height.value): null,
+    limitRule: limitRule.value,
+    customLimit: customLimit.value? Number(customLimit.value): null
+  };
+  save(state);
+  refresh();
+}
+[age,gender,weight,height,limitRule,customLimit].forEach(e=> e.addEventListener('input', readProfile));
+
+// ---------- Limit calculation ----------
+function dailyLimit(){
+  const p = state.profile||{}; const rule = p.limitRule||'auto';
+  if(rule==='fixed400') return 400;
+  if(rule==='fixed100') return 100;
+  if(rule==='perkg3') return p.weight? Math.round(p.weight*3): 0;
+  if(rule==='custom') return p.customLimit||0;
+  // auto
+  const a = p.age||0;
+  if(a>=18) return 400; // prototype adult rule
+  if(a>=12) return 100; // teen rule
+  return 0;             // under 12
+}
+
+// ---------- Drink form behaviors ----------
+function onDrinkChange(){
+  const d = DRINKS.find(x=> x.name===drink.value);
+  if(!d) return;
+  volume.value = d.defaultMl;
+  unit.value = 'ml';
+  overrideMg.placeholder = d.mgPerMl==null? 'required for Custom': 'optional';
+}
+
+drink.addEventListener('change', onDrinkChange);
+
+// ---------- Add entry ----------
+function toMl(val,unit){ return unit==='ml'? Number(val): Number(val)*29.5735; }
+function calcMg(name, ml, override){
+  if(override!=null && override>0){ return override; }
+  const d = DRINKS.find(x=> x.name===name);
+  if(!d){ return 0; }
+  if(d.mgPerMl==null){ return 0; }
+  return Math.round(ml * d.mgPerMl);
+}
+function addEntry(){
+  const name = drink.value;
+  const vol = Number(volume.value||0); const u = unit.value;
+  const date = dateInput.value; const over = Number(overrideMg.value||0);
+  if(!date){ alert('Pick a date'); return; }
+  if(!name){ alert('Pick a drink'); return; }
+  if(vol<=0){ alert('Enter a volume'); return; }
+  const ml = toMl(vol,u);
+  let mg = calcMg(name, ml, over>0?over:null);
+  if((DRINKS.find(x=>x.name===name)?.mgPerMl==null) && !(over>0)){
+    alert('Custom drink needs a caffeine value (mg)'); return;
+  }
+  state.entries.push({id:crypto.randomUUID(), date, name, vol, unit:u, ml, mg});
+  save(state);
+  volume.value=''; overrideMg.value='';
+  refresh();
+}
+addBtn.addEventListener('click', addEntry);
+
+// ---------- Render log ----------
+function renderLog(){
+  const rows = (state.entries||[]).slice().sort((a,b)=> (a.date<b.date?-1:1)).reverse();
+  logTable.innerHTML = rows.map(r=>`<tr>
+    <td>${r.date}</td><td>${r.name}</td><td>${r.vol} ${r.unit}</td><td>${r.mg}</td>
+    <td style="text-align:right"><button class="btn danger" onclick="delEntry('${r.id}')">✕</button></td>
+  </tr>`).join('');
+}
+window.delEntry = function(id){
+  state.entries = state.entries.filter(e=> e.id!==id); save(state); refresh();
+}
+
+// ---------- KPIs & progress ----------
+function todayIso(){ const t=new Date(); return t.toISOString().slice(0,10); }
+function sumForDate(iso){ return (state.entries||[]).filter(e=> e.date===iso).reduce((s,e)=>s+e.mg,0); }
+function refreshKpis(){
+  const lim = dailyLimit();
+  const sum = sumForDate(todayIso());
+  todayTotal.textContent = sum+" mg";
+  todayLimit.textContent = lim? (lim+" mg"): '—';
+  todayRemain.textContent = lim? (Math.max(0, lim-sum)+" mg"): '—';
+  const pct = lim? Math.min(100, Math.round((sum/lim)*100)) : 0;
+  progress.style.width = pct+'%';
+  if(!lim){ statusMsg.textContent = 'Set your profile / limit rule to enable guidance.'; }
+  else if(sum===0){ statusMsg.textContent = 'You are at 0 mg for today.'; }
+  else if(sum<=0.5*lim){ statusMsg.textContent = 'You are under 50% of today\'s limit. 👍'; }
+  else if(sum<=lim){ statusMsg.textContent = 'Approaching your daily limit.'; }
+  else { statusMsg.textContent = 'Over today\'s limit (prototype rule). Consider slowing down.'; }
+}
+
+// ---------- Heatmap ----------
+function daysInMonth(y,m){ return new Date(y, m+1, 0).getDate(); }
+function renderHeat(){
+  const y = Number(yearSel.value); const m = Number(monthSel.value);
+  const lim = dailyLimit();
+  const first = new Date(y,m,1).getDay(); // 0=Sun
+  const totalDays = daysInMonth(y,m);
+  const cells = [];
+  // headers
+  const W = ['Su','Mo','Tu','We','Th','Fr','Sa'];
+  heat.innerHTML = '';
+  // pad start
+  for(let i=0;i<first;i++){ const pad=document.createElement('div'); heat.appendChild(pad); }
+  for(let d=1; d<=totalDays; d++){
+    const iso = `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const sum = (state.entries||[]).filter(e=>e.date===iso).reduce((s,e)=>s+e.mg,0);
+    let cls = 'empty';
+    if(sum>0){
+      if(colorMode.value==='mg'){
+        cls = sum<100 ? 'low' : sum<=300 ? 'med' : 'high';
+      }else{ // pct of limit
+        if(!lim){ cls='low'; }
+        else{
+          const pct = (sum/lim)*100; cls = pct<50?'low': pct<=100?'med':'high';
+        }
+      }
+    }
+    const div = document.createElement('div');
+    div.className = 'dot '+cls; div.title = `${iso}: ${sum} mg`;
+    div.textContent = d; heat.appendChild(div);
+  }
+}
+
+[monthSel,yearSel,colorMode].forEach(e=> e.addEventListener('change', ()=>{ renderHeat(); }));
+
+// ---------- Export / Import / Reset ----------
+el('exportBtn').addEventListener('click', ()=>{
+  const blob = new Blob([JSON.stringify(state, null, 2)], {type:'application/json'});
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'caffinote-data.json'; a.click();
+});
+
+el('importFile').addEventListener('change', (e)=>{
+  const file = e.target.files[0]; if(!file) return;
+  const reader = new FileReader();
+  reader.onload = (ev)=>{ try{ state = JSON.parse(ev.target.result); save(state); location.reload(); }catch{ alert('Invalid JSON'); } };
+  reader.readAsText(file);
+});
+
+el('resetBtn').addEventListener('click', ()=>{
+  if(confirm('Clear all saved data on this browser?')){ localStorage.removeItem(KEY); state = {profile:{}, entries:[]}; location.reload(); }
+});
+
+// ---------- Refresh all ----------
+function refresh(){ renderLog(); refreshKpis(); renderHeat(); }
+
+// ---------- Boot ----------
+(function boot(){
+  initDrinkSelect(); initDate(); initMonthYear(); applyProfile(); onDrinkChange(); refresh();
+})();
+</script>
+</body>
+</html>
