@@ -54,6 +54,9 @@
     .inline{display:inline-flex;gap:8px;align-items:center}
     .narrow{max-width:700px}
     .hidden{display:none}
+  .tabs{display:flex;gap:8px;margin:8px 0}
+    .tabBtn{padding:8px 12px;border-radius:10px;border:1px solid #e5e7eb;background:#fff;cursor:pointer}
+    .tabBtn.active{background:#fff7cc;border-color:#fde68a}
   </style>
 </head>
 <body>
@@ -73,7 +76,7 @@
       <div class="row">
         <div>
           <label>Age</label>
-          <input id="age" type="number" min="0" placeholder="18" />
+          <input id="age" type="number" min="12" placeholder="18" />
         </div>
         <div>
           <label>Gender (optional)</label>
@@ -193,10 +196,23 @@
           <span class="inline"><span class="chip low"></span> low</span>
           <span class="inline"><span class="chip med"></span> medium</span>
           <span class="inline"><span class="chip high"></span> high</span>
-          <span class="inline"><span class="chip" style="background:#0f1529"></span> no data</span>
+          <span class="inline"><span class="chip" style="background:#f3f4f6"></span> no data</span>
         </div>
       </div>
-      <div id="heat" class="heat"></div>
+      <div class="tabs">
+        <button class="tabBtn active" data-tab="heatTab">Heatmap</button>
+        <button class="tabBtn" data-tab="statsTab">Stats</button>
+      </div>
+      <div id="heatTab">
+        <div id="heat" class="heat"></div>
+      </div>
+      <div id="statsTab" style="display:none">
+        <div class="kpi" style="margin-top:6px">
+          <div class="pill"><small>Avg mg/day (whole month)</small><b id="avgMonthAll">—</b></div>
+          <div class="pill"><small>Avg mg/day (days logged)</small><b id="avgMonthLogged">—</b></div>
+          <div class="pill"><small>Total mg (month)</small><b id="sumMonth">—</b></div>
+        </div>
+      </div>
     </section>
 
     <section class="card narrow" style="grid-column:1/-1">
@@ -205,7 +221,7 @@
     </section>
   </main>
   <footer>
-    <div>Made with ♡ for Girls Who (K)now Hackathons — CaffiNote prototype.</div>
+    <div>Made with ♡ for Girls Hoo Hacks 2025 — CaffiNote prototype.</div>
   </footer>
 
 <script>
@@ -221,6 +237,9 @@ const DRINKS = [
   {name:"Red Bull (8.4 oz)", mgPerMl:80/248, defaultMl:248},
   {name:"Monster (16 oz)", mgPerMl:160/473, defaultMl:473},
   {name:"CELSIUS (12 oz)", mgPerMl:200/355, defaultMl:355},
+  {name:"Cold Brew (16 oz)", mgPerMl:200/473, defaultMl:473},
+  {name:"Nitro Cold Brew (12 oz)", mgPerMl:215/355, defaultMl:355},
+  {name:"Matcha Tea", mgPerMl:70/240, defaultMl:355},
   {name:"Dark Chocolate (per oz eaten)", mgPerMl:20/29.57, defaultMl:30},
   {name:"Custom…", mgPerMl:null, defaultMl:355}
 ];
@@ -290,7 +309,24 @@ function readProfile(){
   save(state);
   refresh();
 }
-[age,gender,weight,height,limitRule,customLimit].forEach(e=> e.addEventListener('input', readProfile));
+
+function onAgeInput(){
+  let a = age.value ? Number(age.value) : null;
+  if(a !== null && a < 12){
+    alert('Under 12: Not suggested to intake any caffeine. Age has been set to 12.');
+    age.value = 12; a = 12;
+  }
+  if(a !== null){
+    if(a >= 18){
+      limitRule.value = 'fixed400';
+    } else if(a >= 12){
+      limitRule.value = 'fixed100';
+    }
+  }
+  readProfile();
+}
+
+[gender,weight,height,limitRule,customLimit].forEach(e=> e.addEventListener('input', readProfile));
 
 // ---------- Limit calculation ----------
 function dailyLimit(){
@@ -316,6 +352,7 @@ function onDrinkChange(){
 }
 
 drink.addEventListener('change', onDrinkChange);
+age.addEventListener('input', onAgeInput);
 
 // ---------- Add entry ----------
 function toMl(val,unit){ return unit==='ml'? Number(val): Number(val)*29.5735; }
@@ -375,18 +412,31 @@ function refreshKpis(){
   else { statusMsg.textContent = 'Over today\'s limit (prototype rule). Consider slowing down.'; }
 }
 
-// ---------- Heatmap ----------
+// ---------- Heatmap & Month Stats ----------
 function daysInMonth(y,m){ return new Date(y, m+1, 0).getDate(); }
+
+function renderMonthStats(){
+  const y = Number(yearSel.value); const m = Number(monthSel.value);
+  const totalDays = daysInMonth(y,m);
+  let sum = 0; let daysLogged = 0;
+  for(let d=1; d<=totalDays; d++){
+    const iso = `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const daySum = (state.entries||[]).filter(e=>e.date===iso).reduce((s,e)=>s+e.mg,0);
+    sum += daySum; if(daySum>0) daysLogged++;
+  }
+  const avgAll = totalDays ? Math.round(sum/totalDays) : 0;
+  const avgLogged = daysLogged ? Math.round(sum/daysLogged) : 0;
+  document.getElementById('avgMonthAll').textContent = `${avgAll} mg`;
+  document.getElementById('avgMonthLogged').textContent = `${avgLogged} mg`;
+  document.getElementById('sumMonth').textContent = `${sum} mg`;
+}
+
 function renderHeat(){
   const y = Number(yearSel.value); const m = Number(monthSel.value);
   const lim = dailyLimit();
   const first = new Date(y,m,1).getDay(); // 0=Sun
   const totalDays = daysInMonth(y,m);
-  const cells = [];
-  // headers
-  const W = ['Su','Mo','Tu','We','Th','Fr','Sa'];
   heat.innerHTML = '';
-  // pad start
   for(let i=0;i<first;i++){ const pad=document.createElement('div'); heat.appendChild(pad); }
   for(let d=1; d<=totalDays; d++){
     const iso = `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
@@ -408,7 +458,20 @@ function renderHeat(){
   }
 }
 
-[monthSel,yearSel,colorMode].forEach(e=> e.addEventListener('change', ()=>{ renderHeat(); }));
+[monthSel,yearSel,colorMode].forEach(e=> e.addEventListener('change', ()=>{ renderHeat(); renderMonthStats(); }));
+
+// tabs
+function initTabs(){
+  document.querySelectorAll('.tabBtn').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      document.querySelectorAll('.tabBtn').forEach(b=> b.classList.remove('active'));
+      btn.classList.add('active');
+      const tab = btn.getAttribute('data-tab');
+      document.getElementById('heatTab').style.display = tab==='heatTab'? 'block':'none';
+      document.getElementById('statsTab').style.display = tab==='statsTab'? 'block':'none';
+    });
+  });
+}
 
 // ---------- Export / Import / Reset ----------
 el('exportBtn').addEventListener('click', ()=>{
@@ -428,11 +491,60 @@ el('resetBtn').addEventListener('click', ()=>{
 });
 
 // ---------- Refresh all ----------
-function refresh(){ renderLog(); refreshKpis(); renderHeat(); }
+function refresh(){ renderLog(); refreshKpis(); renderHeat(); renderMonthStats(); }
+
+// ---------- Minimal self-tests (run with ?test=1) ----------
+function runSelfTests(){
+  console.group('CaffiNote Self‑Tests');
+  let pass=0, fail=0; const eq=(name, a, b)=>{ if(a===b){console.log('✓', name); pass++;} else {console.error('✗', name, 'expected', b, 'got', a); fail++;} };
+  // backup
+  const backupProfile = JSON.parse(JSON.stringify(state.profile||{}));
+  const backupEntries = (state.entries||[]).slice();
+  const backupMonth = monthSel.value; const backupYear = yearSel.value;
+  try{
+    // test: drink select populated
+    initDrinkSelect();
+    eq('Drink options populated', document.getElementById('drink').options.length, DRINKS.length);
+
+    // test: calcMg for known volumes
+    eq('Brewed Coffee 237 mL = 95 mg', calcMg('Brewed Coffee', 237, null), 95);
+    eq('Espresso 30 mL = 64 mg', calcMg('Espresso Shot', 30, null), 64);
+    eq('Nitro 355 mL = 215 mg', calcMg('Nitro Cold Brew (12 oz)', 355, null), 215);
+
+    // test: dailyLimit rules
+    state.profile = {age:18, limitRule:'auto'}; eq('dailyLimit age 18 auto=400', dailyLimit(), 400);
+    state.profile = {age:17, limitRule:'auto'}; eq('dailyLimit age 17 auto=100', dailyLimit(), 100);
+    state.profile = {weight:50, limitRule:'perkg3'}; eq('dailyLimit perkg3 50kg=150', dailyLimit(), 150);
+    state.profile = {customLimit:250, limitRule:'custom'}; eq('dailyLimit custom=250', dailyLimit(), 250);
+
+    // test: month stats
+    const y=2025, m=9; // Oct 2025
+    yearSel.value=String(y); monthSel.value=String(m);
+    state.entries = [
+      {id:'t1', date:'2025-10-01', name:'Brewed Coffee', vol:240, unit:'ml', ml:240, mg:100},
+      {id:'t2', date:'2025-10-02', name:'Matcha Tea', vol:240, unit:'ml', ml:240, mg:200}
+    ];
+    renderMonthStats();
+    eq('Month total mg=300', document.getElementById('sumMonth').textContent, '300 mg');
+    // Oct 2025 has 31 days → avgAll=10
+    eq('Avg all days=10 mg', document.getElementById('avgMonthAll').textContent, '10 mg');
+    // 2 logged days → 150
+    eq('Avg logged days=150 mg', document.getElementById('avgMonthLogged').textContent, '150 mg');
+  } finally {
+    // restore
+    state.profile = backupProfile; state.entries = backupEntries;
+    if(backupMonth!=null) monthSel.value = backupMonth; if(backupYear!=null) yearSel.value = backupYear;
+    console.info(`Self‑tests complete: ${pass} passed, ${fail} failed`);
+    console.groupEnd();
+  }
+}
 
 // ---------- Boot ----------
 (function boot(){
-  initDrinkSelect(); initDate(); initMonthYear(); applyProfile(); onDrinkChange(); refresh();
+  initDrinkSelect(); initDate(); initMonthYear(); applyProfile(); onDrinkChange(); initTabs();
+  // apply age rule on start if age is present
+  if(age.value){ onAgeInput(); } else { refresh(); }
+  if(location.search.includes('test=1')){ try{ runSelfTests(); }catch(e){ console.error('Self‑tests error', e); } }
 })();
 </script>
 </body>
