@@ -47,7 +47,8 @@
     .dot.low{background:#fef9c3}
     .dot.med{background:#fde68a}
     .dot.high{background:#fbbf24}
-    .legend{display:flex;gap:8px;align-items:center;font-size:12px;color:var(--muted)}
+    .dot.sel{outline:2px solid #f59e0b; box-shadow:0 0 0 2px #fef3c7 inset}
+    .legend{display:flex;gap:8px;align-items:center;font-size:12px;color:#var(--muted)}
     .chip{width:14px;height:14px;border-radius:6px;border:1px solid #e5e7eb}
     .chip.low{background:#fef9c3}
     .chip.med{background:#fde68a}
@@ -213,7 +214,7 @@ const DRINKS = [
 ];
 
 // ===== STORAGE =====
-const KEY = 'caffinote-v2';
+const KEY = 'caffinote-v3';
 function load(){ try{ return JSON.parse(localStorage.getItem(KEY)) || {profile:{}, entries:[]}; }catch{ return {profile:{}, entries:[]}; } }
 function save(s){ localStorage.setItem(KEY, JSON.stringify(s)); }
 let state = load();
@@ -241,7 +242,12 @@ const heat = $('heat');
 const colorMode = $('colorMode');
 
 // ===== INIT =====
-function initDrinkSelect(){ drink.innerHTML = DRINKS.map(d=>`<option value="${d.name}">${d.name}</option>`).join(''); }
+function initDrinkSelect(){
+  const opts = ['<option value="">— Select —</option>']
+    .concat(DRINKS.map(d=>`<option value="${d.name}">${d.name}</option>`));
+  drink.innerHTML = opts.join('');
+  drink.value = '';
+}
 function initDate(){ const d=new Date(); const y=d.getFullYear(); const m=String(d.getMonth()+1).padStart(2,'0'); const dd=String(d.getDate()).padStart(2,'0'); dateInput.value=`${y}-${m}-${dd}`; }
 function initMonthYear(){ const now=new Date(); const MONTHS=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"]; monthSel.innerHTML = MONTHS.map((m,i)=>`<option value="${i}">${m}</option>`).join(''); monthSel.value=now.getMonth(); const y=now.getFullYear(); const years=[y-2,y-1,y,y+1,y+2]; yearSel.innerHTML=years.map(v=>`<option>${v}</option>`).join(''); yearSel.value=y; }
 
@@ -249,7 +255,6 @@ function initMonthYear(){ const now=new Date(); const MONTHS=["Jan","Feb","Mar",
 function applyProfile(){
   const p=state.profile||{};
   if(p.age!=null) age.value=p.age;
-  // default selection: 400 mg (18+) if nothing stored
   if(p.limitRule) limitRule.value=p.limitRule; else limitRule.value='fixed400';
   if(p.customLimit!=null) customLimit.value=p.customLimit;
 }
@@ -274,26 +279,43 @@ function dailyLimit(){
   if(rule==='fixed400') return 400;
   if(rule==='fixed100') return 100;
   if(rule==='custom') return p.customLimit||0;
-  // fallback by age if someone removes the rule
   const a=p.age||0; if(a>=18) return 400; if(a>=12) return 100; return 0;
 }
 
+// ===== FOCUS-DAY HELPERS (for tests & optional UI) =====
+function validIso(s){ return /^\d{4}-\d{2}-\d{2}$/.test(s); }
+function todayIso(){ const d=new Date(); const y=d.getFullYear(); const m=String(d.getMonth()+1).padStart(2,'0'); const dd=String(d.getDate()).padStart(2,'0'); return `${y}-${m}-${dd}`; }
+function getFocusDate(){ return (state.ui && validIso(state.ui.focusDate)) ? state.ui.focusDate : todayIso(); }
+function setFocusDate(iso){ if(!validIso(iso)) return; state.ui = state.ui||{}; state.ui.focusDate=iso; save(state); refreshKpis(); }
+function updateFocusLabel(){ /* optional: if you later add a #kpiDayLabel span */ }
+
 // ===== DRINK FORM =====
-function onDrinkChange(){ const d=DRINKS.find(x=>x.name===drink.value); if(!d) return; volume.value=d.defaultMl; unit.value='ml'; overrideMg.placeholder = d.mgPerMl==null? 'required for Custom':'optional'; }
+function onDrinkChange(){
+  const name = drink.value;
+  const d = DRINKS.find(x=>x.name===name);
+  if(!name || !d){
+    volume.value = 0; unit.value='ml';
+    overrideMg.placeholder = 'optional';
+    return;
+  }
+  volume.value = d.defaultMl; unit.value='ml';
+  overrideMg.placeholder = d.mgPerMl==null? 'required for Custom':'optional';
+}
 function toMl(val,u){ return u==='ml'? Number(val): Number(val)*29.5735; }
 function calcMg(name, ml, override){ if(override!=null && override>0) return override; const d=DRINKS.find(x=>x.name===name); if(!d) return 0; if(d.mgPerMl==null) return 0; return Math.round(ml*d.mgPerMl); }
 function addEntry(){
   const name=drink.value; const vol=Number(volume.value||0); const u=unit.value; const date=dateInput.value; const over=Number(overrideMg.value||0);
   if(!date){ alert('Pick a date'); return; }
   if(!name){ alert('Pick a drink'); return; }
-  if(vol<=0){ alert('Enter a volume'); return; }
+  if(!(vol>0)){ alert('Enter a volume'); return; }
   const ml=toMl(vol,u); const mg = calcMg(name, ml, over>0?over:null);
   if((DRINKS.find(x=>x.name===name)?.mgPerMl==null) && !(over>0)){ alert('Custom drink needs a caffeine value (mg)'); return; }
   state.entries.push({id:(crypto.randomUUID?crypto.randomUUID():String(Date.now()+Math.random())), date, name, vol, unit:u, ml, mg});
   save(state);
-  // auto-switch month view to the month of the added entry so you see it immediately
   const [Y,M] = date.split('-'); yearSel.value = Y; monthSel.value = String(Number(M)-1);
-  volume.value=''; overrideMg.value='';
+  drink.value=''; onDrinkChange();
+  overrideMg.value='';
+  setFocusDate(date);
   refresh();
 }
 
@@ -302,20 +324,62 @@ function renderLog(){ const rows=(state.entries||[]).slice().sort((a,b)=> a.date
 window.delEntry = id=>{ state.entries = (state.entries||[]).filter(e=>e.id!==id); save(state); refresh(); };
 
 // ===== KPIs =====
-function todayIso(){ const d=new Date(); const y=d.getFullYear(); const m=String(d.getMonth()+1).padStart(2,'0'); const dd=String(d.getDate()).padStart(2,'0'); return `${y}-${m}-${dd}`; }
-function sumForDate(iso){ return (state.entries||[]).filter(e=>e.date===iso).reduce((s,e)=>s+e.mg,0); }
-function refreshKpis(){ const lim=dailyLimit(); const sum=sumForDate(todayIso()); todayTotal.textContent = `${sum} mg`; todayLimit.textContent = lim? `${lim} mg`:'—'; todayRemain.textContent = lim? `${Math.max(0,lim-sum)} mg`:'—'; const pct = lim? Math.min(100, Math.round((sum/lim)*100)):0; progress.style.width=pct+'%'; const alertBox=$('limitAlert'); statusMsg.classList.remove('bad'); progress.classList.remove('over');
+function sumForDate(iso){ return (state.entries||[]).filter(e=> e.date===iso).reduce((s,e)=>s+e.mg,0); }
+function refreshKpis(){
+  const lim=dailyLimit();
+  const day=getFocusDate();
+  const sum=sumForDate(day);
+  todayTotal.textContent = `${sum} mg`;
+  todayLimit.textContent = lim? `${lim} mg`:'—';
+  todayRemain.textContent = lim? `${Math.max(0,lim-sum)} mg`:'—';
+  const pct = lim? Math.min(100, Math.round((sum/lim)*100)):0;
+  progress.style.width=pct+'%';
+  const alertBox=$('limitAlert'); statusMsg.classList.remove('bad'); progress.classList.remove('over');
   if(!lim){ statusMsg.textContent='Set your profile / limit rule to enable guidance.'; alertBox.classList.remove('show'); alertBox.textContent=''; }
-  else if(sum===0){ statusMsg.textContent='You are at 0 mg for today.'; alertBox.classList.remove('show'); alertBox.textContent=''; }
-  else if(sum<=0.5*lim){ statusMsg.textContent='Under 50% of today\'s limit. 👍'; alertBox.classList.remove('show'); alertBox.textContent=''; }
-  else if(sum<=lim){ statusMsg.textContent='Approaching your daily limit.'; alertBox.classList.remove('show'); alertBox.textContent=''; }
-  else { statusMsg.textContent='Over today\'s limit (prototype rule). Consider slowing down.'; statusMsg.classList.add('bad'); progress.classList.add('over'); alertBox.classList.add('show'); alertBox.textContent=`Warning: You\'ve exceeded today\'s limit by ${sum-lim} mg (total ${sum} mg / limit ${lim} mg).`; }
+  else if(sum===0){ statusMsg.textContent='No caffeine logged for this day.'; alertBox.classList.remove('show'); alertBox.textContent=''; }
+  else if(sum<=0.5*lim){ statusMsg.textContent='Under 50% of the limit for this day. 👍'; alertBox.classList.remove('show'); alertBox.textContent=''; }
+  else if(sum<=lim){ statusMsg.textContent='Approaching the daily limit for this day.'; alertBox.classList.remove('show'); alertBox.textContent=''; }
+  else { statusMsg.textContent='Over the daily limit for this day (prototype rule).'; statusMsg.classList.add('bad'); progress.classList.add('over'); alertBox.classList.add('show'); alertBox.textContent=`Warning: You\'ve exceeded the limit by ${sum-lim} mg (total ${sum} mg / limit ${lim} mg).`; }
 }
 
 // ===== MONTH VIEW =====
 function daysInMonth(y,m){ return new Date(y, m+1, 0).getDate(); }
 function renderMonthStats(){ const y=Number(yearSel.value); const m=Number(monthSel.value); const totalDays=daysInMonth(y,m); let sum=0, daysLogged=0; for(let d=1; d<=totalDays; d++){ const iso=`${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`; const daySum=(state.entries||[]).filter(e=>e.date===iso).reduce((s,e)=>s+e.mg,0); sum+=daySum; if(daySum>0) daysLogged++; } const avgAll= totalDays? Math.round(sum/totalDays):0; const avgLogged= daysLogged? Math.round(sum/daysLogged):0; $('avgMonthAll').textContent=`${avgAll} mg`; $('avgMonthLogged').textContent=`${avgLogged} mg`; $('sumMonth').textContent=`${sum} mg`; }
-function renderHeat(){ const y=Number(yearSel.value); const m=Number(monthSel.value); const lim=dailyLimit(); const first=new Date(y,m,1).getDay(); const totalDays=daysInMonth(y,m); heat.innerHTML=''; for(let i=0;i<first;i++){ const pad=document.createElement('div'); heat.appendChild(pad); } for(let d=1; d<=totalDays; d++){ const iso=`${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`; const sum=(state.entries||[]).filter(e=>e.date===iso).reduce((s,e)=>s+e.mg,0); let cls='empty'; if(sum>0){ if(colorMode.value==='mg'){ cls = sum<100?'low': sum<=300?'med':'high'; } else { if(!lim){ cls='low'; } else { const pct=(sum/lim)*100; cls = pct<50?'low': pct<=100?'med':'high'; } } } const div=document.createElement('div'); div.className='dot '+cls; div.title=`${iso}: ${sum} mg`; div.textContent=d; heat.appendChild(div); } }
+function renderHeat(){
+  const y=Number(yearSel.value); const m=Number(monthSel.value); const lim=dailyLimit();
+  const first=new Date(y,m,1).getDay(); const totalDays=daysInMonth(y,m);
+  heat.innerHTML='';
+  for(let i=0;i<first;i++){ heat.appendChild(document.createElement('div')); }
+  for(let d=1; d<=totalDays; d++){
+    const iso=`${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const sum=(state.entries||[]).filter(e=>e.date===iso).reduce((s,e)=>s+e.mg,0);
+    let cls='empty';
+    if(sum>0){
+      if(colorMode.value==='mg'){
+        cls = sum<100?'low': sum<=300?'med':'high';
+      } else {
+        if(!lim){ cls='low'; }
+        else { const pct=(sum/lim)*100; cls = pct<50?'low': pct<=100?'med':'high'; }
+      }
+    }
+    const div=document.createElement('div');
+    div.className='dot '+cls; div.title=`${iso}: ${sum} mg`; div.textContent=d;
+    heat.appendChild(div);
+  }
+}
+
+// ===== TABS =====
+function initTabs(){
+  document.querySelectorAll('.tabBtn').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      document.querySelectorAll('.tabBtn').forEach(b=> b.classList.remove('active'));
+      btn.classList.add('active');
+      const tab = btn.getAttribute('data-tab');
+      document.getElementById('heatTab').style.display = (tab==='heatTab') ? 'block' : 'none';
+      document.getElementById('statsTab').style.display = (tab==='statsTab') ? 'block' : 'none';
+    });
+  });
+}
 
 // ===== EXPORT / RESET =====
 $('exportBtn').addEventListener('click', ()=>{ const blob=new Blob([JSON.stringify(state,null,2)], {type:'application/json'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='caffinote-data.json'; a.click(); });
@@ -339,7 +403,7 @@ function runSelfTests(){
   try{
     // drink dropdown
     initDrinkSelect();
-    eq('Drink options length === DRINKS.length', $('drink').options.length, DRINKS.length);
+    eq('Drink options length === DRINKS.length+1 (with placeholder)', $('drink').options.length, DRINKS.length+1);
     // caffeine math
     eq('Brewed Coffee 237 mL = 95 mg', calcMg('Brewed Coffee', 237, null), 95);
     eq('Espresso 30 mL = 64 mg',      calcMg('Espresso Shot', 30, null), 64);
@@ -357,6 +421,9 @@ function runSelfTests(){
     eq('Month total mg=300', $('sumMonth').textContent, '300 mg');
     eq('Avg all days=10 mg', $('avgMonthAll').textContent, '10 mg');
     eq('Avg logged days=150 mg', $('avgMonthLogged').textContent, '150 mg');
+    // focus date behavior (KPIs follow setFocusDate)
+    setFocusDate('2025-10-02'); refreshKpis(); eq('Focus 2025-10-02 → 200 mg', $('todayTotal').textContent, '200 mg');
+    setFocusDate('2025-10-01'); refreshKpis(); eq('Focus 2025-10-01 → 100 mg', $('todayTotal').textContent, '100 mg');
   } finally {
     state.profile=backupProfile; state.entries=backupEntries; monthSel.value=backupMonth; yearSel.value=backupYear; refresh();
     console.info(`Self‑tests complete: ${pass} passed, ${fail} failed`); console.groupEnd();
@@ -368,8 +435,11 @@ function runSelfTests(){
   initDate();
   initMonthYear();
   applyProfile();
+  initTabs();
   onDrinkChange();
-  if(age.value){ onAgeInput(); } else { refresh(); }
+  if(!state.ui || !state.ui.focusDate){ state.ui = state.ui||{}; state.ui.focusDate = todayIso(); save(state); }
+  updateFocusLabel();
+  refresh();
   if(location.search.includes('test=1')){ try{ runSelfTests(); }catch(e){ console.error('Self‑tests error', e); } }
 })();
 </script>
