@@ -80,7 +80,8 @@
       <div class="row">
         <div>
           <label>Age</label>
-          <input id="age" type="number" min="12" placeholder="18" />
+          <input id="age" type="number" min="12" max="100" placeholder="18" />
+          <small class="note">Caffeine intake for age 12 and under is <b>not suggested</b>. For 13–17, this prototype uses a conservative 100&nbsp;mg/day threshold.</small>
         </div>
         
       </div>
@@ -208,7 +209,7 @@
     </section>
   </main>
   <footer>
-    <div>Made with ♡ for Girls Hoo Hacks 2025 — CaffiNote prototype.</div>
+    <div>Made with ♡ for Girls Hoo Hacks 2025— CaffiNote prototype.</div>
   </footer>
 
 <script>
@@ -278,13 +279,6 @@ function applyProfile(){
   if(p.age!=null) age.value = p.age;
   if(p.limitRule) limitRule.value = p.limitRule; else limitRule.value = 'auto';
   if(p.customLimit!=null) customLimit.value = p.customLimit;
-};
-  if(p.age!=null) age.value = p.age;
-  if(p.gender!=null) gender.value = p.gender;
-  if(p.weight!=null) weight.value = p.weight;
-  if(p.height!=null) height.value = p.height;
-  if(p.limitRule) limitRule.value = p.limitRule; else limitRule.value = 'auto';
-  if(p.customLimit!=null) customLimit.value = p.customLimit;
 }
 function readProfile(){
   state.profile = {
@@ -294,17 +288,24 @@ function readProfile(){
   };
   save(state);
   refresh();
-};
-  save(state);
-  refresh();
 }
 
 function onAgeInput(){
   let a = age.value ? Number(age.value) : null;
   if(a !== null && a < 12){
     alert('Under 12: Not suggested to intake any caffeine. Age has been set to 12.');
-    age.value = 12; a = 12;
+    a = 12; age.value = 12;
   }
+  if(a !== null && a > 100){ a = 100; age.value = 100; }
+  if(a !== null){
+    if(a >= 18){
+      limitRule.value = 'fixed400';
+    } else { // 12–17
+      limitRule.value = 'fixed100';
+    }
+  }
+  readProfile();
+}
   if(a !== null){
     if(a >= 18){
       limitRule.value = 'fixed400';
@@ -319,16 +320,8 @@ function onAgeInput(){
 
 // ---------- Limit calculation ----------
 function dailyLimit(){
-  const p = state.profile||{}; const rule = p.limitRule||'auto';
-  if(rule==='fixed400') return 400;
-  if(rule==='fixed100') return 100;
-  if(rule==='custom') return p.customLimit||0;
-  // auto
-  const a = p.age||0;
-  if(a>=18) return 400; // prototype adult rule
-  if(a>=12) return 100; // teen rule
-  return 0;             // under 12
-}; const rule = p.limitRule||'auto';
+  const p = state.profile||{
+; const rule = p.limitRule||'auto';
   if(rule==='fixed400') return 400;
   if(rule==='fixed100') return 100;
   if(rule==='perkg3') return p.weight? Math.round(p.weight*3): 0;
