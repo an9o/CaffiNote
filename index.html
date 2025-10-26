@@ -5,9 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>CaffiNote ☕ — Daily Caffeine Tracker</title>
   <style>
-    :root{
-      --bg:#fffdf6;--card:#ffffff;--muted:#6b7280;--text:#1f2937;--acc:#f5c542;--ok:#16a34a;--warn:#eab308;--bad:#ef4444;--ring:#fde68a
-    }
+    :root{ --bg:#fffdf6; --card:#ffffff; --muted:#6b7280; --text:#1f2937; --acc:#f5c542; --ring:#fde68a }
     *{box-sizing:border-box}
     body{margin:0;font:16px/1.4 system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,"Helvetica Neue",Arial;color:var(--text);background:linear-gradient(180deg,#fffdf6,#fff7d6)}
     header{padding:24px 18px;display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap}
@@ -23,26 +21,26 @@
     input:focus,select:focus,textarea:focus{box-shadow:0 0 0 3px var(--ring)}
     .row{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
     .row3{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
-    .bar{height:14px;border-radius:999px;background:#f3f4f6;overflow:hidden;border:1px solid #e5e7eb}
-    .bar>i{display:block;height:100%;background:linear-gradient(90deg,#fde047,#facc15);width:0;transition:width .25s ease}
-    .bar>i.over{background:linear-gradient(90deg,#ef4444,#dc2626)}
-    .kpi{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:8px}
-    .pill{background:#fffaf0;border:1px solid #fef3c7;border-radius:12px;padding:10px;text-align:center}
-    .pill b{display:block;font-size:18px}
-    .pill small{color:var(--muted)}
     .flex{display:flex;gap:10px;align-items:center}
+    .inline{display:inline-flex;gap:8px;align-items:center}
     .right{margin-left:auto}
     .btn{cursor:pointer;background:#fde047;border:1px solid #facc15;color:#1f2937}
     .btn:hover{filter:brightness(0.98)}
     .danger{background:#fee2e2;border-color:#fecaca;color:#991b1b}
     .success{background:#dcfce7;border-color:#bbf7d0;color:#065f46}
     .note{font-size:12px;color:var(--muted)}
+    .note.bad{color:#7f1d1d}
     .alert{margin-top:8px;padding:10px 12px;border-radius:10px;background:#fee2e2;border:1px solid #fecaca;color:#7f1d1d;font-size:13px;display:none}
     .alert.show{display:block}
-    .note.bad{color:#7f1d1d}
+    .kpi{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:8px}
+    .pill{background:#fffaf0;border:1px solid #fef3c7;border-radius:12px;padding:10px;text-align:center}
+    .pill b{display:block;font-size:18px}
     table{width:100%;border-collapse:collapse;margin-top:8px}
     th,td{font-size:13px;padding:8px;border-bottom:1px solid #e5e7eb}
     th{color:#374151;text-align:left}
+    .bar{height:14px;border-radius:999px;background:#f3f4f6;overflow:hidden;border:1px solid #e5e7eb}
+    .bar>i{display:block;height:100%;background:linear-gradient(90deg,#fde047,#facc15);width:0;transition:width .25s ease}
+    .bar>i.over{background:linear-gradient(90deg,#ef4444,#dc2626)}
     .heat{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
     .dot{aspect-ratio:1/1;border-radius:10px;display:grid;place-items:center;font-size:11px;border:1px solid #e5e7eb}
     .dot.empty{background:#f3f4f6;color:#9ca3af}
@@ -54,10 +52,6 @@
     .chip.low{background:#fef9c3}
     .chip.med{background:#fde68a}
     .chip.high{background:#fbbf24}
-    footer{max-width:1100px;margin:20px auto 60px;color:var(--muted);padding:0 18px;font-size:12px}
-    .inline{display:inline-flex;gap:8px;align-items:center}
-    .narrow{max-width:700px}
-    .hidden{display:none}
     .tabs{display:flex;gap:8px;margin:8px 0}
     .tabBtn{padding:8px 12px;border-radius:10px;border:1px solid #e5e7eb;background:#fff;cursor:pointer}
     .tabBtn.active{background:#fff7cc;border-color:#fde68a}
@@ -68,8 +62,6 @@
     <h1><span class="logo">☕</span> CaffiNote <small>prototype — not medical advice</small></h1>
     <div class="inline">
       <button class="btn" id="exportBtn">Export Data</button>
-      <label for="importFile" class="btn" style="padding:10px 12px;cursor:pointer">Import</label>
-      <input id="importFile" type="file" accept="application/json" class="hidden"/>
       <button class="btn danger" id="resetBtn" title="Clear all local data">Reset</button>
     </div>
   </header>
@@ -81,28 +73,23 @@
         <div>
           <label>Age</label>
           <input id="age" type="number" min="12" max="100" placeholder="18" />
-          <small class="note">Caffeine intake for age 12 and under is <b>not suggested</b>. For 13–17, this prototype uses a conservative 100&nbsp;mg/day threshold.</small>
+          <small class="note">Caffeine intake for age 12 and under is <b>not suggested</b>. For ages 13–17, this prototype uses a conservative 100&nbsp;mg/day threshold; 18+ uses 400&nbsp;mg/day.</small>
         </div>
-        
-      </div>
-      
-      <div class="row">
         <div>
           <label>Daily limit rule</label>
           <select id="limitRule">
-            <option value="auto">Auto (simple heuristic)</option>
-            <option value="fixed400">Fixed 400 mg (adult prototype)</option>
-            <option value="fixed100">Fixed 100 mg (teen prototype)</option>
-            
+            <option value="fixed400">400 mg (18+)</option>
+            <option value="fixed100">100 mg (12–17)</option>
             <option value="custom">Custom…</option>
           </select>
         </div>
+      </div>
+      <div class="row">
         <div>
           <label>Custom limit (mg)</label>
           <input id="customLimit" type="number" min="0" step="1" placeholder="e.g., 250" />
         </div>
       </div>
-      <p class="note">Heuristic for <b>Auto</b>: if age ≥ 18 → 400 mg/day; 12–17 → 100 mg/day; &lt; 12 → 0 mg/day. You can override with "Custom".</p>
       <div class="kpi">
         <div class="pill"><small>Today Total</small><b id="todayTotal">0 mg</b></div>
         <div class="pill"><small>Daily Limit</small><b id="todayLimit">—</b></div>
@@ -120,22 +107,17 @@
       <div class="row">
         <div>
           <label>Drink</label>
-          <select id="drink">
-          </select>
+          <select id="drink"></select>
         </div>
         <div>
-          <label>Volume</label>
-          <input id="volume" type="number" min="0" step="1" placeholder="355" />
+          <label>Volume & Unit</label>
+          <div class="row" style="grid-template-columns:2fr 1fr; gap:8px">
+            <input id="volume" type="number" min="0" step="1" placeholder="355" />
+            <select id="unit"><option value="ml">mL</option><option value="oz">fl oz</option></select>
+          </div>
         </div>
       </div>
       <div class="row">
-        <div>
-          <label>Unit</label>
-          <select id="unit">
-            <option value="ml">mL</option>
-            <option value="oz">fl oz</option>
-          </select>
-        </div>
         <div>
           <label>Caffeine/serving (override, mg)</label>
           <input id="overrideMg" type="number" min="0" step="1" placeholder="optional" />
@@ -191,9 +173,7 @@
         <button class="tabBtn active" data-tab="heatTab">Heatmap</button>
         <button class="tabBtn" data-tab="statsTab">Stats</button>
       </div>
-      <div id="heatTab">
-        <div id="heat" class="heat"></div>
-      </div>
+      <div id="heatTab"><div id="heat" class="heat"></div></div>
       <div id="statsTab" style="display:none">
         <div class="kpi" style="margin-top:6px">
           <div class="pill"><small>Avg mg/day (whole month)</small><b id="avgMonthAll">—</b></div>
@@ -205,18 +185,18 @@
 
     <section class="card narrow" style="grid-column:1/-1">
       <h2>About this prototype</h2>
-      <p class="note">This hackathon demo stores everything in <b>your browser only</b> (localStorage). No accounts, no servers. Thresholds are simple placeholders; this is not medical advice. Submit feedback and iterate!</p>
+      <p class="note">This hackathon demo stores everything in <b>your browser only</b> (localStorage). No accounts, no servers. Thresholds are simple placeholders; this is not medical advice.</p>
     </section>
   </main>
   <footer>
-    <div>Made with ♡ for Girls Hoo Hacks 2025— CaffiNote prototype.</div>
+    <div>Made with ♡ for Girls Hoo Hacks 2025 — CaffiNote prototype.</div>
   </footer>
 
 <script>
-// ---------- Simple drink database (prototype values) ----------
+// ===== DATA =====
 const DRINKS = [
   {name:"Water", mgPerMl:0, defaultMl:355},
-  {name:"Brewed Coffee", mgPerMl:95/237, defaultMl:355}, // 95 mg per 8 fl oz
+  {name:"Brewed Coffee", mgPerMl:95/237, defaultMl:355},
   {name:"Espresso Shot", mgPerMl:64/30, defaultMl:30},
   {name:"Black Tea", mgPerMl:47/237, defaultMl:355},
   {name:"Green Tea", mgPerMl:28/237, defaultMl:355},
@@ -232,336 +212,163 @@ const DRINKS = [
   {name:"Custom…", mgPerMl:null, defaultMl:355}
 ];
 
-// ---------- Storage helpers ----------
-const KEY = 'caffinote-v1';
-function load(){
-  try{ return JSON.parse(localStorage.getItem(KEY)) || {profile:{}, entries:[]}; }catch{ return {profile:{}, entries:[]}; }
-}
-function save(state){ localStorage.setItem(KEY, JSON.stringify(state)); }
+// ===== STORAGE =====
+const KEY = 'caffinote-v2';
+function load(){ try{ return JSON.parse(localStorage.getItem(KEY)) || {profile:{}, entries:[]}; }catch{ return {profile:{}, entries:[]}; } }
+function save(s){ localStorage.setItem(KEY, JSON.stringify(s)); }
 let state = load();
 
-// ---------- DOM ----------
-const el = id => document.getElementById(id);
-const age = el('age');
-const limitRule = el('limitRule'); const customLimit = el('customLimit');
-const drink = el('drink'); const volume = el('volume'); const unit = el('unit'); const overrideMg = el('overrideMg');
-const addBtn = el('addBtn'); const dateInput = el('date');
-const todayTotal = el('todayTotal'); const todayLimit = el('todayLimit'); const todayRemain = el('todayRemain');
-const progress = el('progress'); const statusMsg = el('statusMsg');
-const logTable = el('logTable').querySelector('tbody');
-const monthSel = el('monthSel'); const yearSel = el('yearSel'); const heat = el('heat'); const colorMode = el('colorMode');
+// ===== DOM =====
+const $ = id => document.getElementById(id);
+const age = $('age');
+const limitRule = $('limitRule');
+const customLimit = $('customLimit');
+const drink = $('drink');
+const volume = $('volume');
+const unit = $('unit');
+const overrideMg = $('overrideMg');
+const addBtn = $('addBtn');
+const dateInput = $('date');
+const todayTotal = $('todayTotal');
+const todayLimit = $('todayLimit');
+const todayRemain = $('todayRemain');
+const progress = $('progress');
+const statusMsg = $('statusMsg');
+const logTable = $('logTable').querySelector('tbody');
+const monthSel = $('monthSel');
+const yearSel = $('yearSel');
+const heat = $('heat');
+const colorMode = $('colorMode');
 
-// ---------- Init selects ----------
-function initDrinkSelect(){
-  drink.innerHTML = DRINKS.map(d=>`<option value="${d.name}">${d.name}</option>`).join('');
-}
-function initDate(){
-  const today = new Date();
-  const yyyy = today.getFullYear();
-  const mm = String(today.getMonth()+1).padStart(2,'0');
-  const dd = String(today.getDate()).padStart(2,'0');
-  dateInput.value = `${yyyy}-${mm}-${dd}`;
-}
-function initMonthYear(){
-  const now = new Date();
-  const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
-  monthSel.innerHTML = MONTHS.map((m,i)=>`<option value="${i}">${m}</option>`).join('');
-  monthSel.value = now.getMonth();
-  const y = now.getFullYear();
-  const years = [y-2,y-1,y,y+1,y+2];
-  yearSel.innerHTML = years.map(v=>`<option>${v}</option>`).join('');
-  yearSel.value = y;
-}
+// ===== INIT =====
+function initDrinkSelect(){ drink.innerHTML = DRINKS.map(d=>`<option value="${d.name}">${d.name}</option>`).join(''); }
+function initDate(){ const d=new Date(); const y=d.getFullYear(); const m=String(d.getMonth()+1).padStart(2,'0'); const dd=String(d.getDate()).padStart(2,'0'); dateInput.value=`${y}-${m}-${dd}`; }
+function initMonthYear(){ const now=new Date(); const MONTHS=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"]; monthSel.innerHTML = MONTHS.map((m,i)=>`<option value="${i}">${m}</option>`).join(''); monthSel.value=now.getMonth(); const y=now.getFullYear(); const years=[y-2,y-1,y,y+1,y+2]; yearSel.innerHTML=years.map(v=>`<option>${v}</option>`).join(''); yearSel.value=y; }
 
-// ---------- Profile load/save ----------
+// ===== PROFILE =====
 function applyProfile(){
-  const p = state.profile || {};
-  if(p.age!=null) age.value = p.age;
-  if(p.limitRule) limitRule.value = p.limitRule; else limitRule.value = 'auto';
-  if(p.customLimit!=null) customLimit.value = p.customLimit;
+  const p=state.profile||{};
+  if(p.age!=null) age.value=p.age;
+  // default selection: 400 mg (18+) if nothing stored
+  if(p.limitRule) limitRule.value=p.limitRule; else limitRule.value='fixed400';
+  if(p.customLimit!=null) customLimit.value=p.customLimit;
 }
 function readProfile(){
-  state.profile = {
-    age: age.value? Number(age.value): null,
+  state.profile={
+    age: age.value?Number(age.value):null,
     limitRule: limitRule.value,
-    customLimit: customLimit.value? Number(customLimit.value): null
+    customLimit: customLimit.value?Number(customLimit.value):null
   };
   save(state);
   refresh();
 }
-
 function onAgeInput(){
-  let a = age.value ? Number(age.value) : null;
-  if(a !== null && a < 12){
-    alert('Under 12: Not suggested to intake any caffeine. Age has been set to 12.');
-    a = 12; age.value = 12;
-  }
-  if(a !== null && a > 100){ a = 100; age.value = 100; }
-  if(a !== null){
-    if(a >= 18){
-      limitRule.value = 'fixed400';
-    } else { // 12–17
-      limitRule.value = 'fixed100';
-    }
-  }
+  let a=age.value?Number(age.value):null;
+  if(a!==null&&a<12){ alert('Under 12: Not suggested to intake any caffeine. Age has been set to 12.'); a=12; age.value=12; }
+  if(a!==null&&a>100){ a=100; age.value=100; }
+  if(a!==null){ if(a>=18) limitRule.value='fixed400'; else limitRule.value='fixed100'; }
   readProfile();
 }
-  if(a !== null){
-    if(a >= 18){
-      limitRule.value = 'fixed400';
-    } else if(a >= 12){
-      limitRule.value = 'fixed100';
-    }
-  }
-  readProfile();
-}
-
-[limitRule,customLimit].forEach(e=> e.addEventListener('input', readProfile));
-
-// ---------- Limit calculation ----------
 function dailyLimit(){
-  const p = state.profile||{
-; const rule = p.limitRule||'auto';
+  const p=state.profile||{}; const rule=p.limitRule||'fixed400';
   if(rule==='fixed400') return 400;
   if(rule==='fixed100') return 100;
-  if(rule==='perkg3') return p.weight? Math.round(p.weight*3): 0;
   if(rule==='custom') return p.customLimit||0;
-  const a = p.age||0;
-  if(a>=18) return 400; // prototype adult rule
-  if(a>=12) return 100; // teen rule
-  return 0;             // under 12
+  // fallback by age if someone removes the rule
+  const a=p.age||0; if(a>=18) return 400; if(a>=12) return 100; return 0;
 }
 
-// ---------- Drink form behaviors ----------
-function onDrinkChange(){
-  const d = DRINKS.find(x=> x.name===drink.value);
-  if(!d) return;
-  volume.value = d.defaultMl;
-  unit.value = 'ml';
-  overrideMg.placeholder = d.mgPerMl==null? 'required for Custom': 'optional';
-}
-
-drink.addEventListener('change', onDrinkChange);
-age.addEventListener('input', onAgeInput);
-
-// ---------- Add entry ----------
-function toMl(val,unit){ return unit==='ml'? Number(val): Number(val)*29.5735; }
-function calcMg(name, ml, override){
-  if(override!=null && override>0){ return override; }
-  const d = DRINKS.find(x=> x.name===name);
-  if(!d){ return 0; }
-  if(d.mgPerMl==null){ return 0; }
-  return Math.round(ml * d.mgPerMl);
-}
+// ===== DRINK FORM =====
+function onDrinkChange(){ const d=DRINKS.find(x=>x.name===drink.value); if(!d) return; volume.value=d.defaultMl; unit.value='ml'; overrideMg.placeholder = d.mgPerMl==null? 'required for Custom':'optional'; }
+function toMl(val,u){ return u==='ml'? Number(val): Number(val)*29.5735; }
+function calcMg(name, ml, override){ if(override!=null && override>0) return override; const d=DRINKS.find(x=>x.name===name); if(!d) return 0; if(d.mgPerMl==null) return 0; return Math.round(ml*d.mgPerMl); }
 function addEntry(){
-  const name = drink.value;
-  const vol = Number(volume.value||0); const u = unit.value;
-  const date = dateInput.value; const over = Number(overrideMg.value||0);
+  const name=drink.value; const vol=Number(volume.value||0); const u=unit.value; const date=dateInput.value; const over=Number(overrideMg.value||0);
   if(!date){ alert('Pick a date'); return; }
   if(!name){ alert('Pick a drink'); return; }
   if(vol<=0){ alert('Enter a volume'); return; }
-  const ml = toMl(vol,u);
-  let mg = calcMg(name, ml, over>0?over:null);
-  if((DRINKS.find(x=>x.name===name)?.mgPerMl==null) && !(over>0)){
-    alert('Custom drink needs a caffeine value (mg)'); return;
-  }
-  state.entries.push({id:crypto.randomUUID(), date, name, vol, unit:u, ml, mg});
+  const ml=toMl(vol,u); const mg = calcMg(name, ml, over>0?over:null);
+  if((DRINKS.find(x=>x.name===name)?.mgPerMl==null) && !(over>0)){ alert('Custom drink needs a caffeine value (mg)'); return; }
+  state.entries.push({id:(crypto.randomUUID?crypto.randomUUID():String(Date.now()+Math.random())), date, name, vol, unit:u, ml, mg});
   save(state);
+  // auto-switch month view to the month of the added entry so you see it immediately
+  const [Y,M] = date.split('-'); yearSel.value = Y; monthSel.value = String(Number(M)-1);
   volume.value=''; overrideMg.value='';
   refresh();
 }
-addBtn.addEventListener('click', addEntry);
 
-// ---------- Render log ----------
-function renderLog(){
-  const rows = (state.entries||[]).slice().sort((a,b)=> (a.date<b.date?-1:1)).reverse();
-  logTable.innerHTML = rows.map(r=>`<tr>
-    <td>${r.date}</td><td>${r.name}</td><td>${r.vol} ${r.unit}</td><td>${r.mg}</td>
-    <td style="text-align:right"><button class="btn danger" onclick="delEntry('${r.id}')">✕</button></td>
-  </tr>`).join('');
-}
-window.delEntry = function(id){
-  state.entries = state.entries.filter(e=> e.id!==id); save(state); refresh();
-}
+// ===== LOG RENDER =====
+function renderLog(){ const rows=(state.entries||[]).slice().sort((a,b)=> a.date<b.date?1:-1); logTable.innerHTML = rows.map(r=>`<tr><td>${r.date}</td><td>${r.name}</td><td>${r.vol} ${r.unit}</td><td>${r.mg}</td><td style="text-align:right"><button class="btn danger" onclick="delEntry('${r.id}')">✕</button></td></tr>`).join(''); }
+window.delEntry = id=>{ state.entries = (state.entries||[]).filter(e=>e.id!==id); save(state); refresh(); };
 
-// ---------- KPIs & progress ----------
-function todayIso(){
-  // Return local YYYY-MM-DD to match <input type="date"> values
-  const d = new Date();
-  const y = d.getFullYear();
-  const m = String(d.getMonth()+1).padStart(2,'0');
-  const day = String(d.getDate()).padStart(2,'0');
-  return `${y}-${m}-${day}`;
-}
-function sumForDate(iso){ return (state.entries||[]).filter(e=> e.date===iso).reduce((s,e)=>s+e.mg,0); }
-function refreshKpis(){
-  const lim = dailyLimit();
-  const sum = sumForDate(todayIso());
-  todayTotal.textContent = sum+" mg";
-  todayLimit.textContent = lim? (lim+" mg"): '—';
-  todayRemain.textContent = lim? (Math.max(0, lim-sum)+" mg"): '—';
-  const pct = lim? Math.min(100, Math.round((sum/lim)*100)) : 0;
-  progress.style.width = pct+'%';
-  const alertBox = document.getElementById('limitAlert');
-  statusMsg.classList.remove('bad');
-  progress.classList.remove('over');
-
-  if(!lim){
-    statusMsg.textContent = 'Set your profile / limit rule to enable guidance.';
-    alertBox.classList.remove('show');
-    alertBox.textContent='';
-  } else if(sum===0){
-    statusMsg.textContent = 'You are at 0 mg for today.';
-    alertBox.classList.remove('show');
-    alertBox.textContent='';
-  } else if(sum<=0.5*lim){
-    statusMsg.textContent = 'Under 50% of today\'s limit. 👍';
-    alertBox.classList.remove('show');
-    alertBox.textContent='';
-  } else if(sum<=lim){
-    statusMsg.textContent = 'Approaching your daily limit.';
-    alertBox.classList.remove('show');
-    alertBox.textContent='';
-  } else {
-    statusMsg.textContent = 'Over today\'s limit (prototype rule). Consider slowing down.';
-    statusMsg.classList.add('bad');
-    progress.classList.add('over');
-    alertBox.classList.add('show');
-    const overBy = sum - lim;
-    alertBox.textContent = `Warning: You've exceeded today\'s limit by ${overBy} mg (total ${sum} mg / limit ${lim} mg).`;
-  }
+// ===== KPIs =====
+function todayIso(){ const d=new Date(); const y=d.getFullYear(); const m=String(d.getMonth()+1).padStart(2,'0'); const dd=String(d.getDate()).padStart(2,'0'); return `${y}-${m}-${dd}`; }
+function sumForDate(iso){ return (state.entries||[]).filter(e=>e.date===iso).reduce((s,e)=>s+e.mg,0); }
+function refreshKpis(){ const lim=dailyLimit(); const sum=sumForDate(todayIso()); todayTotal.textContent = `${sum} mg`; todayLimit.textContent = lim? `${lim} mg`:'—'; todayRemain.textContent = lim? `${Math.max(0,lim-sum)} mg`:'—'; const pct = lim? Math.min(100, Math.round((sum/lim)*100)):0; progress.style.width=pct+'%'; const alertBox=$('limitAlert'); statusMsg.classList.remove('bad'); progress.classList.remove('over');
+  if(!lim){ statusMsg.textContent='Set your profile / limit rule to enable guidance.'; alertBox.classList.remove('show'); alertBox.textContent=''; }
+  else if(sum===0){ statusMsg.textContent='You are at 0 mg for today.'; alertBox.classList.remove('show'); alertBox.textContent=''; }
+  else if(sum<=0.5*lim){ statusMsg.textContent='Under 50% of today\'s limit. 👍'; alertBox.classList.remove('show'); alertBox.textContent=''; }
+  else if(sum<=lim){ statusMsg.textContent='Approaching your daily limit.'; alertBox.classList.remove('show'); alertBox.textContent=''; }
+  else { statusMsg.textContent='Over today\'s limit (prototype rule). Consider slowing down.'; statusMsg.classList.add('bad'); progress.classList.add('over'); alertBox.classList.add('show'); alertBox.textContent=`Warning: You\'ve exceeded today\'s limit by ${sum-lim} mg (total ${sum} mg / limit ${lim} mg).`; }
 }
 
-// ---------- Heatmap & Month Stats ----------
+// ===== MONTH VIEW =====
 function daysInMonth(y,m){ return new Date(y, m+1, 0).getDate(); }
+function renderMonthStats(){ const y=Number(yearSel.value); const m=Number(monthSel.value); const totalDays=daysInMonth(y,m); let sum=0, daysLogged=0; for(let d=1; d<=totalDays; d++){ const iso=`${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`; const daySum=(state.entries||[]).filter(e=>e.date===iso).reduce((s,e)=>s+e.mg,0); sum+=daySum; if(daySum>0) daysLogged++; } const avgAll= totalDays? Math.round(sum/totalDays):0; const avgLogged= daysLogged? Math.round(sum/daysLogged):0; $('avgMonthAll').textContent=`${avgAll} mg`; $('avgMonthLogged').textContent=`${avgLogged} mg`; $('sumMonth').textContent=`${sum} mg`; }
+function renderHeat(){ const y=Number(yearSel.value); const m=Number(monthSel.value); const lim=dailyLimit(); const first=new Date(y,m,1).getDay(); const totalDays=daysInMonth(y,m); heat.innerHTML=''; for(let i=0;i<first;i++){ const pad=document.createElement('div'); heat.appendChild(pad); } for(let d=1; d<=totalDays; d++){ const iso=`${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`; const sum=(state.entries||[]).filter(e=>e.date===iso).reduce((s,e)=>s+e.mg,0); let cls='empty'; if(sum>0){ if(colorMode.value==='mg'){ cls = sum<100?'low': sum<=300?'med':'high'; } else { if(!lim){ cls='low'; } else { const pct=(sum/lim)*100; cls = pct<50?'low': pct<=100?'med':'high'; } } } const div=document.createElement('div'); div.className='dot '+cls; div.title=`${iso}: ${sum} mg`; div.textContent=d; heat.appendChild(div); } }
 
-function renderMonthStats(){
-  const y = Number(yearSel.value); const m = Number(monthSel.value);
-  const totalDays = daysInMonth(y,m);
-  let sum = 0; let daysLogged = 0;
-  for(let d=1; d<=totalDays; d++){
-    const iso = `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
-    const daySum = (state.entries||[]).filter(e=>e.date===iso).reduce((s,e)=>s+e.mg,0);
-    sum += daySum; if(daySum>0) daysLogged++;
-  }
-  const avgAll = totalDays ? Math.round(sum/totalDays) : 0;
-  const avgLogged = daysLogged ? Math.round(sum/daysLogged) : 0;
-  document.getElementById('avgMonthAll').textContent = `${avgAll} mg`;
-  document.getElementById('avgMonthLogged').textContent = `${avgLogged} mg`;
-  document.getElementById('sumMonth').textContent = `${sum} mg`;
-}
+// ===== EXPORT / RESET =====
+$('exportBtn').addEventListener('click', ()=>{ const blob=new Blob([JSON.stringify(state,null,2)], {type:'application/json'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='caffinote-data.json'; a.click(); });
+$('resetBtn').addEventListener('click', ()=>{ if(confirm('Clear all saved data on this browser?')){ localStorage.removeItem(KEY); state={profile:{}, entries:[]}; location.reload(); } });
 
-function renderHeat(){
-  const y = Number(yearSel.value); const m = Number(monthSel.value);
-  const lim = dailyLimit();
-  const first = new Date(y,m,1).getDay(); // 0=Sun
-  const totalDays = daysInMonth(y,m);
-  heat.innerHTML = '';
-  for(let i=0;i<first;i++){ const pad=document.createElement('div'); heat.appendChild(pad); }
-  for(let d=1; d<=totalDays; d++){
-    const iso = `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
-    const sum = (state.entries||[]).filter(e=>e.date===iso).reduce((s,e)=>s+e.mg,0);
-    let cls = 'empty';
-    if(sum>0){
-      if(colorMode.value==='mg'){
-        cls = sum<100 ? 'low' : sum<=300 ? 'med' : 'high';
-      }else{ // pct of limit
-        if(!lim){ cls='low'; }
-        else{
-          const pct = (sum/lim)*100; cls = pct<50?'low': pct<=100?'med':'high';
-        }
-      }
-    }
-    const div = document.createElement('div');
-    div.className = 'dot '+cls; div.title = `${iso}: ${sum} mg`;
-    div.textContent = d; heat.appendChild(div);
-  }
-}
-
+// ===== REFRESH & BOOT =====
+function refresh(){ renderLog(); refreshKpis(); renderHeat(); renderMonthStats(); }
+[limitRule, customLimit].forEach(e=> e.addEventListener('input', readProfile));
+age.addEventListener('input', onAgeInput);
+drink.addEventListener('change', onDrinkChange);
+addBtn.addEventListener('click', addEntry);
 [monthSel,yearSel,colorMode].forEach(e=> e.addEventListener('change', ()=>{ renderHeat(); renderMonthStats(); }));
 
-// tabs
-function initTabs(){
-  document.querySelectorAll('.tabBtn').forEach(btn=>{
-    btn.addEventListener('click', ()=>{
-      document.querySelectorAll('.tabBtn').forEach(b=> b.classList.remove('active'));
-      btn.classList.add('active');
-      const tab = btn.getAttribute('data-tab');
-      document.getElementById('heatTab').style.display = tab==='heatTab'? 'block':'none';
-      document.getElementById('statsTab').style.display = tab==='statsTab'? 'block':'none';
-    });
-  });
-}
-
-// ---------- Export / Import / Reset ----------
-el('exportBtn').addEventListener('click', ()=>{
-  const blob = new Blob([JSON.stringify(state, null, 2)], {type:'application/json'});
-  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'caffinote-data.json'; a.click();
-});
-
-el('importFile').addEventListener('change', (e)=>{
-  const file = e.target.files[0]; if(!file) return;
-  const reader = new FileReader();
-  reader.onload = (ev)=>{ try{ state = JSON.parse(ev.target.result); save(state); location.reload(); }catch{ alert('Invalid JSON'); } };
-  reader.readAsText(file);
-});
-
-el('resetBtn').addEventListener('click', ()=>{
-  if(confirm('Clear all saved data on this browser?')){ localStorage.removeItem(KEY); state = {profile:{}, entries:[]}; location.reload(); }
-});
-
-// ---------- Refresh all ----------
-function refresh(){ renderLog(); refreshKpis(); renderHeat(); renderMonthStats(); }
-
-// ---------- Minimal self-tests (run with ?test=1) ----------
+// ---- Tiny self‑tests (optional). Open with ?test=1 to run. ----
 function runSelfTests(){
   console.group('CaffiNote Self‑Tests');
-  let pass=0, fail=0; const eq=(name, a, b)=>{ if(a===b){console.log('✓', name); pass++;} else {console.error('✗', name, 'expected', b, 'got', a); fail++;} };
-  const backupProfile = JSON.parse(JSON.stringify(state.profile||{}));
-  const backupEntries = (state.entries||[]).slice();
-  const backupMonth = monthSel.value; const backupYear = yearSel.value;
+  let pass=0, fail=0; const eq=(name,a,b)=>{ if(a===b){console.log('✓',name); pass++;} else {console.error('✗',name,'expected',b,'got',a); fail++;} };
+  const backupProfile=JSON.parse(JSON.stringify(state.profile||{}));
+  const backupEntries=(state.entries||[]).slice();
+  const backupMonth=monthSel.value, backupYear=yearSel.value;
   try{
+    // drink dropdown
     initDrinkSelect();
-    eq('Drink options populated', document.getElementById('drink').options.length, DRINKS.length);
-
+    eq('Drink options length === DRINKS.length', $('drink').options.length, DRINKS.length);
+    // caffeine math
     eq('Brewed Coffee 237 mL = 95 mg', calcMg('Brewed Coffee', 237, null), 95);
-    eq('Espresso 30 mL = 64 mg', calcMg('Espresso Shot', 30, null), 64);
-    eq('Nitro 355 mL = 215 mg', calcMg('Nitro Cold Brew (12 oz)', 355, null), 215);
-
-    state.profile = {age:18, limitRule:'auto'}; eq('dailyLimit age 18 auto=400', dailyLimit(), 400);
-    state.profile = {age:17, limitRule:'auto'}; eq('dailyLimit age 17 auto=100', dailyLimit(), 100);
-    eq('perkg3 option is removed', Array.from(limitRule.options).some(o=>o.value==='perkg3'), false);
-    state.profile = {customLimit:250, limitRule:'custom'}; eq('dailyLimit custom=250', dailyLimit(), 250);
-
-    const y=2025, m=9; // Oct 2025
-    yearSel.value=String(y); monthSel.value=String(m);
-    state.entries = [
-      {id:'t1', date:'2025-10-01', name:'Brewed Coffee', vol:240, unit:'ml', ml:240, mg:100},
-      {id:'t2', date:'2025-10-02', name:'Matcha Tea', vol:240, unit:'ml', ml:240, mg:200}
+    eq('Espresso 30 mL = 64 mg',      calcMg('Espresso Shot', 30, null), 64);
+    eq('Nitro 355 mL = 215 mg',       calcMg('Nitro Cold Brew (12 oz)', 355, null), 215);
+    // limit rules via soft-select
+    age.value='16'; onAgeInput(); eq('Age 16 → rule 100', dailyLimit(), 100);
+    age.value='18'; onAgeInput(); eq('Age 18 → rule 400', dailyLimit(), 400);
+    // month stats
+    const y=2025, m=9; yearSel.value=String(y); monthSel.value=String(m);
+    state.entries=[
+      {id:'a', date:'2025-10-01', name:'Brewed Coffee', vol:240, unit:'ml', ml:240, mg:100},
+      {id:'b', date:'2025-10-02', name:'Matcha Tea', vol:240, unit:'ml', ml:240, mg:200}
     ];
     renderMonthStats();
-    eq('Month total mg=300', document.getElementById('sumMonth').textContent, '300 mg');
-    eq('Avg all days=10 mg', document.getElementById('avgMonthAll').textContent, '10 mg'); // 31 days in Oct → 300/31 ≈ 9.7 → 10
-    eq('Avg logged days=150 mg', document.getElementById('avgMonthLogged').textContent, '150 mg');
-
-    // Over-limit visual test
-    const today = todayIso();
-    state.profile = {age:18, limitRule:'auto'}; // 400 mg
-    state.entries.push({id:'t3', date:today, name:'Brewed Coffee', vol:355, unit:'ml', ml:355, mg:350});
-    state.entries.push({id:'t4', date:today, name:'Espresso Shot', vol:30, unit:'ml', ml:30, mg:64}); // total 414
-    refreshKpis();
-    eq('Progress has over class when > limit', progress.classList.contains('over'), true);
+    eq('Month total mg=300', $('sumMonth').textContent, '300 mg');
+    eq('Avg all days=10 mg', $('avgMonthAll').textContent, '10 mg');
+    eq('Avg logged days=150 mg', $('avgMonthLogged').textContent, '150 mg');
   } finally {
-    state.profile = backupProfile; state.entries = backupEntries;
-    if(backupMonth!=null) monthSel.value = backupMonth; if(backupYear!=null) yearSel.value = backupYear;
-    console.info(`Self‑tests complete: ${pass} passed, ${fail} failed`);
-    console.groupEnd();
+    state.profile=backupProfile; state.entries=backupEntries; monthSel.value=backupMonth; yearSel.value=backupYear; refresh();
+    console.info(`Self‑tests complete: ${pass} passed, ${fail} failed`); console.groupEnd();
   }
 }
 
-// ---------- Boot ----------
 (function boot(){
-  initDrinkSelect(); initDate(); initMonthYear(); applyProfile(); onDrinkChange(); initTabs();
+  initDrinkSelect();
+  initDate();
+  initMonthYear();
+  applyProfile();
+  onDrinkChange();
   if(age.value){ onAgeInput(); } else { refresh(); }
   if(location.search.includes('test=1')){ try{ runSelfTests(); }catch(e){ console.error('Self‑tests error', e); } }
 })();
