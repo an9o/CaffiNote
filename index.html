@@ -82,27 +82,9 @@
           <label>Age</label>
           <input id="age" type="number" min="12" placeholder="18" />
         </div>
-        <div>
-          <label>Gender (optional)</label>
-          <select id="gender">
-            <option value="">Prefer not to say</option>
-            <option>Female</option>
-            <option>Male</option>
-            <option>Non-binary</option>
-            <option>Other</option>
-          </select>
-        </div>
+        
       </div>
-      <div class="row">
-        <div>
-          <label>Weight (kg, optional)</label>
-          <input id="weight" type="number" min="0" step="0.1" placeholder="60" />
-        </div>
-        <div>
-          <label>Height (cm, optional)</label>
-          <input id="height" type="number" min="0" step="0.1" placeholder="165" />
-        </div>
-      </div>
+      
       <div class="row">
         <div>
           <label>Daily limit rule</label>
@@ -110,7 +92,7 @@
             <option value="auto">Auto (simple heuristic)</option>
             <option value="fixed400">Fixed 400 mg (adult prototype)</option>
             <option value="fixed100">Fixed 100 mg (teen prototype)</option>
-            <option value="perkg3">3 mg/kg</option>
+            
             <option value="custom">Custom…</option>
           </select>
         </div>
@@ -226,7 +208,7 @@
     </section>
   </main>
   <footer>
-    <div>Made with ♡ for Girls Hoo Hack 2025 — CaffiNote prototype.</div>
+    <div>Made with ♡ for Girls Hoo Hacks 2025 — CaffiNote prototype.</div>
   </footer>
 
 <script>
@@ -259,7 +241,7 @@ let state = load();
 
 // ---------- DOM ----------
 const el = id => document.getElementById(id);
-const age = el('age'); const gender = el('gender'); const weight = el('weight'); const height = el('height');
+const age = el('age');
 const limitRule = el('limitRule'); const customLimit = el('customLimit');
 const drink = el('drink'); const volume = el('volume'); const unit = el('unit'); const overrideMg = el('overrideMg');
 const addBtn = el('addBtn'); const dateInput = el('date');
@@ -294,6 +276,10 @@ function initMonthYear(){
 function applyProfile(){
   const p = state.profile || {};
   if(p.age!=null) age.value = p.age;
+  if(p.limitRule) limitRule.value = p.limitRule; else limitRule.value = 'auto';
+  if(p.customLimit!=null) customLimit.value = p.customLimit;
+};
+  if(p.age!=null) age.value = p.age;
   if(p.gender!=null) gender.value = p.gender;
   if(p.weight!=null) weight.value = p.weight;
   if(p.height!=null) height.value = p.height;
@@ -303,12 +289,12 @@ function applyProfile(){
 function readProfile(){
   state.profile = {
     age: age.value? Number(age.value): null,
-    gender: gender.value||'',
-    weight: weight.value? Number(weight.value): null,
-    height: height.value? Number(height.value): null,
     limitRule: limitRule.value,
     customLimit: customLimit.value? Number(customLimit.value): null
   };
+  save(state);
+  refresh();
+};
   save(state);
   refresh();
 }
@@ -329,11 +315,20 @@ function onAgeInput(){
   readProfile();
 }
 
-[gender,weight,height,limitRule,customLimit].forEach(e=> e.addEventListener('input', readProfile));
+[limitRule,customLimit].forEach(e=> e.addEventListener('input', readProfile));
 
 // ---------- Limit calculation ----------
 function dailyLimit(){
   const p = state.profile||{}; const rule = p.limitRule||'auto';
+  if(rule==='fixed400') return 400;
+  if(rule==='fixed100') return 100;
+  if(rule==='custom') return p.customLimit||0;
+  // auto
+  const a = p.age||0;
+  if(a>=18) return 400; // prototype adult rule
+  if(a>=12) return 100; // teen rule
+  return 0;             // under 12
+}; const rule = p.limitRule||'auto';
   if(rule==='fixed400') return 400;
   if(rule==='fixed100') return 100;
   if(rule==='perkg3') return p.weight? Math.round(p.weight*3): 0;
@@ -397,7 +392,14 @@ window.delEntry = function(id){
 }
 
 // ---------- KPIs & progress ----------
-function todayIso(){ const t=new Date(); return t.toISOString().slice(0,10); }
+function todayIso(){
+  // Return local YYYY-MM-DD to match <input type="date"> values
+  const d = new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth()+1).padStart(2,'0');
+  const day = String(d.getDate()).padStart(2,'0');
+  return `${y}-${m}-${day}`;
+}
 function sumForDate(iso){ return (state.entries||[]).filter(e=> e.date===iso).reduce((s,e)=>s+e.mg,0); }
 function refreshKpis(){
   const lim = dailyLimit();
@@ -535,7 +537,7 @@ function runSelfTests(){
 
     state.profile = {age:18, limitRule:'auto'}; eq('dailyLimit age 18 auto=400', dailyLimit(), 400);
     state.profile = {age:17, limitRule:'auto'}; eq('dailyLimit age 17 auto=100', dailyLimit(), 100);
-    state.profile = {weight:50, limitRule:'perkg3'}; eq('dailyLimit perkg3 50kg=150', dailyLimit(), 150);
+    eq('perkg3 option is removed', Array.from(limitRule.options).some(o=>o.value==='perkg3'), false);
     state.profile = {customLimit:250, limitRule:'custom'}; eq('dailyLimit custom=250', dailyLimit(), 250);
 
     const y=2025, m=9; // Oct 2025
